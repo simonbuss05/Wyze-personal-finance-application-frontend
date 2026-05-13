@@ -1,70 +1,131 @@
-# Getting Started with Create React App
+# Wyze — Personal Finance Tracker (Frontend)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React frontend for the Wyze personal finance dashboard. Connects to the Wyze Spring Boot API and integrates Plaid Link to let users connect multiple bank accounts and view aggregated account balances, transaction history, and spending analytics in one place.
 
-## Available Scripts
+**Live App:** `https://placeholder.vercel.app`  
+**Backend Repo:** [wyze-personal-finance-application-backend](https://github.com/simonbuss05/wyze-personal-finance-application-backend)
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **React 18** — UI framework
+- **React Router v6** — client-side routing and protected routes
+- **Axios** — HTTP client with JWT interceptor
+- **react-plaid-link** — Plaid Link bank connection widget
+- **Recharts** — analytics charts and data visualization
+- **Context API** — global authentication state
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## Project Structure
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ConnectBankButton.js   # Plaid Link integration
+│   └── ProtectedRoute.js      # Auth-gated route wrapper
+├── pages/               # Full page components
+│   ├── Login.js
+│   ├── Register.js
+│   └── Dashboard.js
+├── context/             # Global state
+│   └── AuthContext.js         # Auth state, login/logout, JWT storage
+├── services/            # API layer
+│   └── api.js                 # Axios instance with JWT interceptor
+└── App.js               # Router and provider setup
+```
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Authentication Flow
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+1. User registers or logs in
+2. Backend returns a JWT
+3. JWT stored in localStorage via AuthContext
+4. Axios interceptor attaches JWT to every subsequent request
+5. ProtectedRoute checks for token — redirects to /login if absent
+6. Logout clears token from state and localStorage
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## Plaid Link Flow
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```
+1. User clicks "Connect a Bank Account"
+2. React calls backend /api/plaid/create-link-token
+3. link_token stored in state → usePlaidLink hook initializes
+4. useEffect detects ready=true → opens Plaid Link widget automatically
+5. User authenticates with their bank inside Plaid's secure widget
+6. onSuccess fires with public_token
+7. React sends public_token to backend /api/plaid/exchange-token
+8. Backend syncs accounts and transactions → navigates to dashboard
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Running Locally
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Prerequisites
+- Node.js 18+
+- npm
+- Wyze backend running on `http://localhost:8080`
 
-## Learn More
+### Setup
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**1. Clone the repository**
+```bash
+git clone https://github.com/simonbuss05/wyze-frontend.git
+cd wyze-frontend
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**2. Install dependencies**
+```bash
+npm install
+```
 
-### Code Splitting
+**3. Configure environment**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Create a `.env` file in the root:
+```
+REACT_APP_API_URL=http://localhost:8080
+```
 
-### Analyzing the Bundle Size
+Update `src/services/api.js` if your backend runs on a different port.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+**4. Start the development server**
+```bash
+npm start
+```
 
-### Making a Progressive Web App
+App runs on `http://localhost:3000`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## Key Components
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### `AuthContext`
+Global authentication state using React Context. Stores the JWT token in localStorage so the user stays logged in across page refreshes. Exposes `login(token)`, `logout()`, and `token` to any component via the `useAuth()` hook.
 
-### Deployment
+### `ConnectBankButton`
+Handles the full Plaid Link flow. Fetches a link token from the backend, passes it to the `usePlaidLink` hook, and opens the widget automatically once initialized. On success sends the public token to the backend and triggers a dashboard refresh.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### `ProtectedRoute`
+Wraps any route that requires authentication. Checks for a JWT token in the auth context — if absent redirects to `/login`, otherwise renders the child component.
 
-### `npm run build` fails to minify
+### `api.js`
+Configured Axios instance with base URL and a request interceptor that automatically attaches the JWT from localStorage to the `Authorization` header on every outgoing request.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## Deployment
+
+Deployed on [Vercel](https://vercel.com). Connect the GitHub repository in the Vercel dashboard and set the `REACT_APP_API_URL` environment variable to your Railway backend URL. Vercel auto-deploys on every push to main.
+
+---
+
+## Author
+
+Simon Buss — [github.com/simonbuss05](https://github.com/simonbuss05)
