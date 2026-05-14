@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
-import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import * as PlaidLinkModule from 'react-plaid-link'
 console.log(PlaidLinkModule)
 
 function ConnectBankButton() {
   const [linkToken, setLinkToken] = useState(null)
-  const navigate = useNavigate()
 
   async function fetchLinkToken() {
     const response = await api.post('/api/plaid/create-link-token')
@@ -18,7 +16,7 @@ function ConnectBankButton() {
     token: linkToken,
     onSuccess: async (publicToken) => {
       await api.post('/api/plaid/exchange-token', { publicToken })
-      navigate('/dashboard')
+      window.location.href = '/dashboard'
     }
   })
 
