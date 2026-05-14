@@ -15,9 +15,9 @@ function ConnectBankButton() {
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess: async (publicToken) => {
-      await api.post('/api/plaid/exchange-token', { publicToken })
-      window.location.href = '/dashboard'
-    }
+  await api.post('/api/plaid/exchange-token', { publicToken })
+  window.location.href = '/profile?tab=banks'
+}
   })
 
   useEffect(() => {

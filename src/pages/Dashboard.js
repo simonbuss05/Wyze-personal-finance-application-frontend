@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import useDashboard from '../hooks/useDashboard'
-import ConnectBankButton from '../components/ConnectBankButton'
 import api from '../services/api'
 
 function formatCategory(category) {
@@ -109,38 +108,38 @@ function Dashboard() {
   }
 
   async function saveNickname(accountId) {
-  try {
-    await api.patch(`/api/accounts/${accountId}/nickname`, { nickname: editingNickname })
-    
-    const updatedName = editingNickname.trim() === ''
-      ? localAccounts.find(a => a.id === accountId)?.name
-      : editingNickname.trim()
+    try {
+      await api.patch(`/api/accounts/${accountId}/nickname`, { nickname: editingNickname })
 
-    const targetMask = localAccounts.find(a => a.id === accountId)?.mask
+      const updatedName = editingNickname.trim() === ''
+        ? localAccounts.find(a => a.id === accountId)?.name
+        : editingNickname.trim()
 
-    setLocalAccounts(prev => prev.map(account =>
-      account.id === accountId
-        ? { ...account, nickname: editingNickname.trim() === '' ? null : editingNickname.trim() }
-        : account
-    ))
+      const targetMask = localAccounts.find(a => a.id === accountId)?.mask
 
-    if (transactionData && transactionData.transactions && targetMask) {
-      setTransactionData(prev => ({
-        ...prev,
-        transactions: prev.transactions.map(t =>
-          t.accountMask === targetMask
-            ? { ...t, accountName: updatedName }
-            : t
-        )
-      }))
+      setLocalAccounts(prev => prev.map(account =>
+        account.id === accountId
+          ? { ...account, nickname: editingNickname.trim() === '' ? null : editingNickname.trim() }
+          : account
+      ))
+
+      if (transactionData && transactionData.transactions && targetMask) {
+        setTransactionData(prev => ({
+          ...prev,
+          transactions: prev.transactions.map(t =>
+            t.accountMask === targetMask
+              ? { ...t, accountName: updatedName }
+              : t
+          )
+        }))
+      }
+
+      setEditingAccountId(null)
+      setEditingNickname('')
+    } catch (err) {
+      console.error(err)
     }
-
-    setEditingAccountId(null)
-    setEditingNickname('')
-  } catch (err) {
-    console.error(err)
   }
-}
 
   function handleLogout() {
     logout()
@@ -235,8 +234,18 @@ function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #e0e0e0', flexShrink: 0 }}>
         <h1 style={{ margin: 0, fontSize: '22px' }}>Wyze</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <ConnectBankButton />
-          <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer', background: 'white', fontSize: '14px' }}>Logout</button>
+          <button
+            onClick={() => navigate('/profile')}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer', background: 'white', fontSize: '14px' }}
+          >
+            Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer', background: 'white', fontSize: '14px' }}
+          >
+            Logout
+          </button>
         </div>
       </div>
 
