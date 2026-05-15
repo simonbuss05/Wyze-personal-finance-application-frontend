@@ -6,6 +6,7 @@ import Register from './pages/Register.js'
 import Dashboard from './pages/Dashboard.js'
 import Profile from './pages/Profile.js'
 
+
 function App() {
   return (
     <AuthProvider>

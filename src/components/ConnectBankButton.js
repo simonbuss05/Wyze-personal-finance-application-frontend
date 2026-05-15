@@ -1,34 +1,47 @@
 import { useState, useEffect } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import api from '../services/api'
-import * as PlaidLinkModule from 'react-plaid-link'
-console.log(PlaidLinkModule)
 
-function ConnectBankButton() {
+const btnStyle = {
+  padding: '10px 20px',
+  borderRadius: '8px',
+  border: '1px solid rgba(46,134,171,0.4)',
+  background: 'rgba(46,134,171,0.15)',
+  color: '#7ecae3',
+  cursor: 'pointer',
+  fontSize: '13px',
+  fontFamily: "'DM Sans', sans-serif",
+  fontWeight: '500',
+  transition: 'all 0.2s',
+  letterSpacing: '0.2px'
+}
+
+function ConnectBankButton({ redirectTo = '/profile?tab=banks' }) {
   const [linkToken, setLinkToken] = useState(null)
 
-  async function fetchLinkToken() {
-    const response = await api.post('/api/plaid/create-link-token')
-    setLinkToken(response.data.link_token)
-  }
+  useEffect(() => {
+    api.post('/api/plaid/create-link-token')
+      .then(res => setLinkToken(res.data.link_token))
+      .catch(err => console.error(err))
+  }, [])
 
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess: async (publicToken) => {
-  await api.post('/api/plaid/exchange-token', { publicToken })
-  window.location.href = '/profile?tab=banks'
-}
+      await api.post('/api/plaid/exchange-token', { publicToken })
+      window.location.href = redirectTo
+    }
   })
 
-  useEffect(() => {
-    if (ready) {
-      open()
-    }
-  }, [ready, open])
-
   return (
-    <button onClick={fetchLinkToken}>
-      Connect a Bank Account
+    <button
+      onClick={() => open()}
+      disabled={!ready}
+      style={{ ...btnStyle, opacity: ready ? 1 : 0.6, cursor: ready ? 'pointer' : 'not-allowed' }}
+      onMouseEnter={e => { if (ready) { e.target.style.background = 'rgba(46,134,171,0.25)'; e.target.style.borderColor = 'rgba(46,134,171,0.7)' }}}
+      onMouseLeave={e => { e.target.style.background = 'rgba(46,134,171,0.15)'; e.target.style.borderColor = 'rgba(46,134,171,0.4)' }}
+    >
+      {ready ? '+ Connect Bank' : 'Loading...'}
     </button>
   )
 }
