@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { usePlaidLink } from 'react-plaid-link'
 import api from '../services/api'
 
 const btnStyle = {
@@ -18,24 +17,37 @@ const btnStyle = {
 
 function ConnectBankButton({ redirectTo = '/profile?tab=banks' }) {
   const [linkToken, setLinkToken] = useState(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     api.post('/api/plaid/create-link-token')
-      .then(res => setLinkToken(res.data.link_token))
+      .then(res => { if (!cancelled) setLinkToken(res.data.link_token) })
       .catch(err => console.error(err))
+    return () => { cancelled = true }
   }, [])
 
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess: async (publicToken) => {
-      await api.post('/api/plaid/exchange-token', { publicToken })
-      window.location.href = redirectTo
-    }
-  })
+  useEffect(() => {
+    if (!linkToken) return
+    setReady(true)
+  }, [linkToken])
+
+  function handleClick() {
+    if (!linkToken) return
+    const handler = window.Plaid.create({
+      token: linkToken,
+      onSuccess: async (publicToken) => {
+        await api.post('/api/plaid/exchange-token', { publicToken })
+        window.location.href = redirectTo
+      },
+      onExit: () => {}
+    })
+    handler.open()
+  }
 
   return (
     <button
-      onClick={() => open()}
+      onClick={handleClick}
       disabled={!ready}
       style={{ ...btnStyle, opacity: ready ? 1 : 0.6, cursor: ready ? 'pointer' : 'not-allowed' }}
       onMouseEnter={e => { if (ready) { e.target.style.background = 'rgba(46,134,171,0.25)'; e.target.style.borderColor = 'rgba(46,134,171,0.7)' }}}
