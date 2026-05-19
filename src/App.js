@@ -5,7 +5,7 @@ import Login from './pages/Login.js'
 import Register from './pages/Register.js'
 import Dashboard from './pages/Dashboard.js'
 import Profile from './pages/Profile.js'
-
+import Analytics from './pages/Analytics.js'
 
 function App() {
   return (
@@ -23,6 +23,11 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <Analytics />
             </ProtectedRoute>
           } />
         </Routes>
