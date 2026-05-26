@@ -62,7 +62,7 @@ export default function Landing() {
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={() => navigate('/login')}
-              style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif' " }}
+              style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif"}}
             >
               Sign in
             </button>
