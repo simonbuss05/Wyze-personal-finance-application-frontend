@@ -9,7 +9,13 @@ const font = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 
 function formatCategory(category) {
   if (!category) return ''
-  return category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  const smallWords = ['and', 'or', 'the', 'of', 'in', 'at', 'for']
+  return category
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .split(' ')
+    .map((word, i) => i === 0 || !smallWords.includes(word) ? word.charAt(0).toUpperCase() + word.slice(1) : word)
+    .join(' ')
 }
 
 const fmt = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0)
