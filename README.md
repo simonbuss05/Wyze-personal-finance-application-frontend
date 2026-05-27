@@ -1,20 +1,53 @@
-# Wyze — Personal Finance Tracker (Frontend)
+# Wyze — Personal Finance Dashboard (Frontend)
 
-A React frontend for the Wyze personal finance dashboard. Connects to the Wyze Spring Boot API and integrates Plaid Link to let users connect multiple bank accounts and view aggregated account balances, transaction history, and spending analytics in one place.
+A React frontend for the Wyze personal finance dashboard. Connects to the Wyze Spring Boot API and integrates Plaid Link to let users connect multiple bank accounts and view aggregated balances, transaction history with filtering, and spending analytics — all in one place.
 
-**Live App:** `https://placeholder.vercel.app`  
+**Live App:** [wyze-personal-finance-application-f.vercel.app](https://wyze-personal-finance-application-f.vercel.app)  
 **Backend Repo:** [wyze-personal-finance-application-backend](https://github.com/simonbuss05/wyze-personal-finance-application-backend)
 
 ---
 
 ## Tech Stack
 
-- **React 18** — UI framework
-- **React Router v6** — client-side routing and protected routes
-- **Axios** — HTTP client with JWT interceptor
-- **react-plaid-link** — Plaid Link bank connection widget
-- **Recharts** — analytics charts and data visualization
-- **Context API** — global authentication state
+| Layer | Technology |
+|---|---|
+| UI Framework | React 18 |
+| Routing | React Router v6 |
+| HTTP Client | Axios with JWT interceptor |
+| Bank Integration | Plaid Link (vanilla JS SDK via `window.Plaid`) |
+| Charts | Recharts |
+| State | React Context API + useState/useEffect |
+| Deployment | Vercel |
+
+---
+
+## Features
+
+**Dashboard**
+- Net worth, total assets, total liabilities, and monthly spending summary cards
+- Full account list with real-time balances — click any account to filter transactions by it
+- Custom account nicknames — rename any account with a persistent display name
+- Transaction feed with search, category filter, account filter, and date range filter
+- Filter total — shows the sum of all transactions matching current filters across all pages
+- Load more pagination
+
+**Analytics**
+- Monthly spending bar chart with dynamic range selector (up to 12 months or however much data exists)
+- Spending by category pie chart with the same range selector
+- Small categories automatically grouped into "Other" to keep the chart readable
+- Auto-generated insights panel — biggest transaction, month-over-month change, top category, highest balance account
+
+**Profile**
+- Edit name and email
+- Change password
+- Connected banks tab — view and disconnect institutions
+- Danger zone — permanently delete account and all data
+
+**Auth**
+- Register and login with JWT authentication
+- 7-day token expiration
+- Automatic redirect to login on expired or invalid token
+- Error boundary — graceful fallback UI on unexpected crashes
 
 ---
 
@@ -22,18 +55,25 @@ A React frontend for the Wyze personal finance dashboard. Connects to the Wyze S
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ConnectBankButton.js   # Plaid Link integration
+├── components/
+│   ├── ConnectBankButton.js   # Plaid Link integration, syncing state
+│   ├── EmptyState.js          # No-accounts state with connect prompt
+│   ├── ErrorBoundary.js       # App-level crash fallback
 │   └── ProtectedRoute.js      # Auth-gated route wrapper
-├── pages/               # Full page components
-│   ├── Login.js
-│   ├── Register.js
-│   └── Dashboard.js
-├── context/             # Global state
-│   └── AuthContext.js         # Auth state, login/logout, JWT storage
-├── services/            # API layer
-│   └── api.js                 # Axios instance with JWT interceptor
-└── App.js               # Router and provider setup
+├── context/
+│   └── AuthContext.js         # JWT storage, login/logout
+├── hooks/
+│   └── useDashboard.js        # Fetches summary + accounts on mount
+├── pages/
+│   ├── Landing.js             # Public landing page at /
+│   ├── Login.js               # Login form
+│   ├── Register.js            # Registration form
+│   ├── Dashboard.js           # Main app view — accounts + transactions
+│   ├── Analytics.js           # Charts and insights
+│   └── Profile.js             # Account settings and connected banks
+├── services/
+│   └── api.js                 # Axios instance with JWT + 401 interceptor
+└── App.js                     # Routes and provider setup
 ```
 
 ---
@@ -41,28 +81,52 @@ src/
 ## Authentication Flow
 
 ```
-1. User registers or logs in
-2. Backend returns a JWT
-3. JWT stored in localStorage via AuthContext
-4. Axios interceptor attaches JWT to every subsequent request
-5. ProtectedRoute checks for token — redirects to /login if absent
+1. User registers or logs in → backend returns JWT
+2. JWT stored in localStorage via AuthContext
+3. Axios request interceptor attaches JWT to every outgoing request
+4. ProtectedRoute checks for token — redirects to /login if absent
+5. Axios response interceptor catches 401 → clears token, redirects to /login
 6. Logout clears token from state and localStorage
 ```
 
 ---
 
-## Plaid Link Flow
+## Plaid Integration Flow
 
 ```
-1. User clicks "Connect a Bank Account"
-2. React calls backend /api/plaid/create-link-token
-3. link_token stored in state → usePlaidLink hook initializes
-4. useEffect detects ready=true → opens Plaid Link widget automatically
-5. User authenticates with their bank inside Plaid's secure widget
+1. ConnectBankButton mounts → immediately fetches link_token from backend
+2. window.Plaid.create() initializes with the link_token
+3. Button shows "Loading..." until Plaid SDK is ready, then "+ Connect Bank"
+4. User clicks → Plaid Link widget opens
+5. User authenticates with their bank inside Plaid's secure hosted widget
 6. onSuccess fires with public_token
-7. React sends public_token to backend /api/plaid/exchange-token
-8. Backend syncs accounts and transactions → navigates to dashboard
+7. Frontend POSTs public_token to /api/plaid/exchange-token
+8. Backend syncs accounts and transactions → redirects to dashboard
 ```
+
+The vanilla `window.Plaid` SDK is used instead of `react-plaid-link` to avoid a double-initialization bug caused by React's component lifecycle. The Plaid script is loaded once in `public/index.html`.
+
+---
+
+## Key Components
+
+### `ConnectBankButton`
+Pre-fetches the Plaid link token on mount so the button is ready immediately when clicked. Uses `window.Plaid.create()` directly rather than the React wrapper. A cancellation flag prevents state updates if the component unmounts before the token fetch resolves.
+
+### `Dashboard`
+The main app view split into two columns — accounts on the left, transactions on the right. Account cards are clickable to filter the transaction list by that account. The filter bar includes search, category, account, and date range selects. A filter total line below the filters shows the aggregate sum of all matching transactions across all pages, not just the current page.
+
+### `Analytics`
+Fetches 12 months of spending data on load to determine how many months of data exist, then dynamically generates the range selector options to only show ranges that have data. For example if the user only has 3 months of history, the "Last 6 months" and "Last 12 months" options don't appear. Both charts have independent range selectors.
+
+### `Profile`
+Two-tab sidebar layout — Account Settings (personal info, password, danger zone) and Connected Banks (list of institutions with disconnect). All destructive actions go through confirmation modals.
+
+### `api.js`
+Configured Axios instance with a request interceptor that attaches JWT and a response interceptor that catches 401 errors and automatically clears the token and redirects to login — no manual handling needed anywhere in the app.
+
+### `ErrorBoundary`
+Class component wrapping the entire app. Catches any unhandled render errors and shows a clean "Something went wrong — Refresh Page" fallback instead of a white screen.
 
 ---
 
@@ -77,8 +141,8 @@ src/
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/simonbuss05/wyze-frontend.git
-cd wyze-frontend
+git clone https://github.com/simonbuss05/Wyze-personal-finance-application-frontend.git
+cd Wyze-personal-finance-application-frontend
 ```
 
 **2. Install dependencies**
@@ -86,43 +150,25 @@ cd wyze-frontend
 npm install
 ```
 
-**3. Configure environment**
-
-Create a `.env` file in the root:
-```
-REACT_APP_API_URL=http://localhost:8080
-```
-
-Update `src/services/api.js` if your backend runs on a different port.
-
-**4. Start the development server**
+**3. Start the development server**
 ```bash
 npm start
 ```
 
-App runs on `http://localhost:3000`.
-
----
-
-## Key Components
-
-### `AuthContext`
-Global authentication state using React Context. Stores the JWT token in localStorage so the user stays logged in across page refreshes. Exposes `login(token)`, `logout()`, and `token` to any component via the `useAuth()` hook.
-
-### `ConnectBankButton`
-Handles the full Plaid Link flow. Fetches a link token from the backend, passes it to the `usePlaidLink` hook, and opens the widget automatically once initialized. On success sends the public token to the backend and triggers a dashboard refresh.
-
-### `ProtectedRoute`
-Wraps any route that requires authentication. Checks for a JWT token in the auth context — if absent redirects to `/login`, otherwise renders the child component.
-
-### `api.js`
-Configured Axios instance with base URL and a request interceptor that automatically attaches the JWT from localStorage to the `Authorization` header on every outgoing request.
+The app runs on `http://localhost:3000` and proxies API calls to the backend at `http://localhost:8080`.
 
 ---
 
 ## Deployment
 
-Deployed on [Vercel](https://vercel.com). Connect the GitHub repository in the Vercel dashboard and set the `REACT_APP_API_URL` environment variable to your Railway backend URL. Vercel auto-deploys on every push to main.
+Deployed on [Vercel](https://vercel.com). Connected to the GitHub repository — every push to `main` triggers an automatic redeployment.
+
+Environment variable set in Vercel dashboard:
+```
+REACT_APP_API_URL=https://wyze-personal-finance-application-backend-production.up.railway.app
+```
+
+The `api.js` baseURL falls back to `http://localhost:8080` if the environment variable is not set, so local development works without any configuration.
 
 ---
 
