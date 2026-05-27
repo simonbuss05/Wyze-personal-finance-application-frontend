@@ -7,6 +7,13 @@ const font = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 
 const COLORS = ['#2e86ab', '#5bbf8a', '#ff8a7a', '#f4a261', '#7ecae3', '#c77dff', '#ffb703', '#4cc9f0', '#e76f51', '#a8dadc']
 
+const ALL_RANGE_OPTIONS = [
+  { value: 1, label: 'This month' },
+  { value: 3, label: 'Last 3 months' },
+  { value: 6, label: 'Last 6 months' },
+  { value: 12, label: 'Last 12 months' }
+]
+
 function formatCategory(category) {
   if (!category) return ''
   const smallWords = ['and', 'or', 'the', 'of', 'in', 'at', 'for']
@@ -47,16 +54,22 @@ export default function Analytics() {
   const [error, setError] = useState(null)
   const [barRange, setBarRange] = useState(12)
   const [pieRange, setPieRange] = useState(1)
+  const [availableMonths, setAvailableMonths] = useState(12)
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [monthlyRes, categoryRes, insightsRes] = await Promise.all([
-          api.get(`/api/analytics/monthly-spending?months=${barRange}`),
-          api.get(`/api/analytics/category-breakdown?months=${pieRange}`),
+          api.get('/api/analytics/monthly-spending?months=12'),
+          api.get('/api/analytics/category-breakdown?months=1'),
           api.get('/api/analytics/insights')
         ])
-        setMonthlySpending(monthlyRes.data)
+        const months = monthlyRes.data
+        setMonthlySpending(months)
+        setAvailableMonths(months.length || 1)
+        // Set barRange to the max available
+        const maxAvailable = ALL_RANGE_OPTIONS.filter(o => o.value <= (months.length || 1)).pop()
+        if (maxAvailable) setBarRange(maxAvailable.value)
         setCategoryBreakdown(groupCategories(categoryRes.data.map(item => ({
           ...item,
           name: formatCategory(item.category)
@@ -69,7 +82,7 @@ export default function Analytics() {
       }
     }
     fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (loading) return
@@ -100,6 +113,11 @@ export default function Analytics() {
 
   if (loading) return <div style={{ ...baseStyle, alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '15px' }}><style>{font}</style>Loading...</div>
   if (error) return <div style={{ ...baseStyle, alignItems: 'center', justifyContent: 'center', color: '#ff6b6b', fontSize: '15px' }}><style>{font}</style>Error: {error}</div>
+
+  // Only show options where we have enough data
+  const rangeOptions = ALL_RANGE_OPTIONS.filter(opt => opt.value <= availableMonths)
+  // Always include "This month" as minimum
+  if (rangeOptions.length === 0) rangeOptions.push(ALL_RANGE_OPTIONS[0])
 
   const barSubtitle = barLoading ? 'Loading...' : getRangeSubtitle(monthlySpending)
   const barIsPartial = !barLoading && monthlySpending.length > 0 && monthlySpending.length < barRange
@@ -197,12 +215,13 @@ export default function Analytics() {
                     {barSubtitle}
                   </p>
                 </div>
-                <select value={barRange} onChange={e => setBarRange(Number(e.target.value))} style={selectStyle}>
-                  <option value={1}>This month</option>
-                  <option value={3}>Last 3 months</option>
-                  <option value={6}>Last 6 months</option>
-                  <option value={12}>Last 12 months</option>
-                </select>
+                {rangeOptions.length > 1 && (
+                  <select value={barRange} onChange={e => setBarRange(Number(e.target.value))} style={selectStyle}>
+                    {rangeOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>
@@ -233,12 +252,13 @@ export default function Analytics() {
                     {pieRange === 1 ? 'This month' : `Last ${pieRange} months`}
                   </p>
                 </div>
-                <select value={pieRange} onChange={e => setPieRange(Number(e.target.value))} style={selectStyle}>
-                  <option value={1}>This month</option>
-                  <option value={3}>Last 3 months</option>
-                  <option value={6}>Last 6 months</option>
-                  <option value={12}>Last 12 months</option>
-                </select>
+                {rangeOptions.length > 1 && (
+                  <select value={pieRange} onChange={e => setPieRange(Number(e.target.value))} style={selectStyle}>
+                    {rangeOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>
