@@ -43,12 +43,20 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState('')
   const [transactionLoading, setTransactionLoading] = useState(true)
   const [categories, setCategories] = useState([])
+  const [filterTotal, setFilterTotal] = useState(null)
   const [editingAccountId, setEditingAccountId] = useState(null)
   const [editingNickname, setEditingNickname] = useState('')
   const debounceTimer = useRef(null)
   const modalDragRef = useRef(false)
 
   useEffect(() => { if (initialAccounts) setLocalAccounts(initialAccounts) }, [initialAccounts])
+
+  function getDateFromRange(days) {
+    if (!days) return ''
+    const date = new Date()
+    date.setDate(date.getDate() - parseInt(days))
+    return date.toISOString().split('T')[0]
+  }
 
   async function fetchTransactions(searchVal, category, account, from, to, pageNum) {
     try {
@@ -68,21 +76,33 @@ export default function Dashboard() {
     finally { setTransactionLoading(false) }
   }
 
+  async function fetchFilterTotal(searchVal, category, account, from, to) {
+    try {
+      const params = []
+      if (searchVal) params.push(`search=${searchVal}`)
+      if (category) params.push(`category=${category}`)
+      if (account) params.push(`accountId=${account}`)
+      if (from) params.push(`from=${from}`)
+      if (to) params.push(`to=${to}`)
+      const url = `/api/transactions/total${params.length > 0 ? '?' + params.join('&') : ''}`
+      const response = await api.get(url)
+      setFilterTotal(response.data.total)
+    } catch (err) { console.error(err) }
+  }
+
   useEffect(() => {
     fetchTransactions('', '', '', '', '', 0)
+    fetchFilterTotal('', '', '', '', '')
     api.get('/api/transactions/categories').then(res => setCategories(res.data))
   }, [])
 
-  function getDateFromRange(days) {
-    if (!days) return ''
-    const date = new Date()
-    date.setDate(date.getDate() - parseInt(days))
-    return date.toISOString().split('T')[0]
-  }
-
   function handleFilterChange(s, c, a, from, to) {
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(() => { setPage(0); fetchTransactions(s, c, a, from, to, 0) }, 500)
+    debounceTimer.current = setTimeout(() => {
+      setPage(0)
+      fetchTransactions(s, c, a, from, to, 0)
+      fetchFilterTotal(s, c, a, from, to)
+    }, 500)
   }
 
   function handleSearchChange(val) {
@@ -129,6 +149,7 @@ export default function Dashboard() {
   function clearFilters() {
     setSearch(''); setCategoryFilter(''); setAccountFilter(''); setDateRange(''); setPage(0)
     fetchTransactions('', '', '', '', '', 0)
+    fetchFilterTotal('', '', '', '', '')
   }
 
   const baseStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0d1b2a', fontFamily: "'DM Sans', sans-serif", color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
@@ -271,6 +292,24 @@ export default function Dashboard() {
                 </select>
                 <button onClick={clearFilters} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>Clear</button>
               </div>
+
+              {/* Filter total */}
+              {filterTotal !== null && (
+                <div style={{ marginTop: '10px', fontSize: '13px', color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Total:
+                  <span style={{
+                    color: filterTotal > 0 ? '#ff8a7a' : '#5bbf8a',
+                    fontFamily: "'DM Serif Display', serif",
+                    fontSize: '15px',
+                    fontWeight: '400'
+                  }}>
+                    {filterTotal > 0 ? '-' : '+'}{fmt(Math.abs(filterTotal))}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>
+                    across {transactionData?.totalElements || 0} transaction{transactionData?.totalElements !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
