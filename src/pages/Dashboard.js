@@ -40,8 +40,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [accountFilter, setAccountFilter] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const [dateRange, setDateRange] = useState('')
   const [transactionLoading, setTransactionLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [editingAccountId, setEditingAccountId] = useState(null)
@@ -74,18 +73,43 @@ export default function Dashboard() {
     api.get('/api/transactions/categories').then(res => setCategories(res.data))
   }, [])
 
-  function handleFilterChange(s, c, a, f, t) {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(() => { setPage(0); fetchTransactions(s, c, a, f, t, 0) }, 500)
+  function getDateFromRange(days) {
+    if (!days) return ''
+    const date = new Date()
+    date.setDate(date.getDate() - parseInt(days))
+    return date.toISOString().split('T')[0]
   }
 
-  function handleSearchChange(val) { setSearch(val); handleFilterChange(val, categoryFilter, accountFilter, fromDate, toDate) }
-  function handleCategoryChange(val) { setCategoryFilter(val); handleFilterChange(search, val, accountFilter, fromDate, toDate) }
-  function handleAccountChange(val) { setAccountFilter(val); handleFilterChange(search, categoryFilter, val, fromDate, toDate) }
-  function handleFromDateChange(val) { setFromDate(val); handleFilterChange(search, categoryFilter, accountFilter, val, toDate) }
-  function handleToDateChange(val) { setToDate(val); handleFilterChange(search, categoryFilter, accountFilter, fromDate, val) }
+  function handleFilterChange(s, c, a, from, to) {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => { setPage(0); fetchTransactions(s, c, a, from, to, 0) }, 500)
+  }
 
-  async function loadMore() { const n = page + 1; setPage(n); fetchTransactions(search, categoryFilter, accountFilter, fromDate, toDate, n) }
+  function handleSearchChange(val) {
+    setSearch(val)
+    handleFilterChange(val, categoryFilter, accountFilter, getDateFromRange(dateRange), '')
+  }
+
+  function handleCategoryChange(val) {
+    setCategoryFilter(val)
+    handleFilterChange(search, val, accountFilter, getDateFromRange(dateRange), '')
+  }
+
+  function handleAccountChange(val) {
+    setAccountFilter(val)
+    handleFilterChange(search, categoryFilter, val, getDateFromRange(dateRange), '')
+  }
+
+  function handleDateRangeChange(val) {
+    setDateRange(val)
+    handleFilterChange(search, categoryFilter, accountFilter, getDateFromRange(val), '')
+  }
+
+  async function loadMore() {
+    const n = page + 1
+    setPage(n)
+    fetchTransactions(search, categoryFilter, accountFilter, getDateFromRange(dateRange), '', n)
+  }
 
   async function saveNickname(accountId) {
     try {
@@ -101,7 +125,11 @@ export default function Dashboard() {
   }
 
   function handleLogout() { logout(); navigate('/login') }
-  function clearFilters() { setSearch(''); setCategoryFilter(''); setAccountFilter(''); setFromDate(''); setToDate(''); setPage(0); fetchTransactions('', '', '', '', '', 0) }
+
+  function clearFilters() {
+    setSearch(''); setCategoryFilter(''); setAccountFilter(''); setDateRange(''); setPage(0)
+    fetchTransactions('', '', '', '', '', 0)
+  }
 
   const baseStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0d1b2a', fontFamily: "'DM Sans', sans-serif", color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
 
@@ -115,10 +143,10 @@ export default function Dashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, background: 'rgba(255,255,255,0.02)' }}>
           <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: '22px', letterSpacing: '-0.3px' }}>Wyze</span>
           <div style={{ display: 'flex', gap: '10px' }}>
-  <button onClick={() => navigate('/analytics')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Analytics</button>
-  <button onClick={() => navigate('/profile')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Profile</button>
-  <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Logout</button>
-</div>
+            <button onClick={() => navigate('/analytics')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Analytics</button>
+            <button onClick={() => navigate('/profile')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Profile</button>
+            <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Logout</button>
+          </div>
         </div>
         <EmptyState />
       </div>
@@ -132,7 +160,6 @@ export default function Dashboard() {
       <style>{font}</style>
       <style>{`
         option { background: #0d1b2a; color: white; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -166,10 +193,10 @@ export default function Dashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, background: 'rgba(255,255,255,0.02)' }}>
           <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: '22px', letterSpacing: '-0.3px' }}>Wyze</span>
           <div style={{ display: 'flex', gap: '10px' }}>
-  <button onClick={() => navigate('/analytics')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Analytics</button>
-  <button onClick={() => navigate('/profile')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Profile</button>
-  <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Logout</button>
-</div>
+            <button onClick={() => navigate('/analytics')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Analytics</button>
+            <button onClick={() => navigate('/profile')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Profile</button>
+            <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', fontFamily: "'DM Sans', sans-serif" }}>Logout</button>
+          </div>
         </div>
 
         {/* Main layout */}
@@ -235,8 +262,13 @@ export default function Dashboard() {
                   <option value="">All Accounts</option>
                   {localAccounts && localAccounts.map(a => <option key={a.id} value={a.id}>{a.nickname || a.name} ••••{a.mask}</option>)}
                 </select>
-                <input type="date" value={fromDate} onChange={e => handleFromDateChange(e.target.value)} style={inputStyle} />
-                <input type="date" value={toDate} onChange={e => handleToDateChange(e.target.value)} style={inputStyle} />
+                <select value={dateRange} onChange={e => handleDateRangeChange(e.target.value)} style={{ ...inputStyle, flex: 1, cursor: 'pointer' }}>
+                  <option value="">All time</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="60">Last 60 days</option>
+                  <option value="90">Last 90 days</option>
+                </select>
                 <button onClick={clearFilters} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>Clear</button>
               </div>
             </div>
