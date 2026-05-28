@@ -51,6 +51,34 @@ A React frontend for the Wyze personal finance dashboard. Connects to the Wyze S
 
 ---
 
+## Screenshots
+
+### Dashboard
+![Dashboard](screenshots/Dashboard.png)
+
+### Analytics
+![Analytics](screenshots/Analytics.png)
+
+### Login
+![Login](screenshots/Login.png)
+
+### Register
+![Register](screenshots/Register.png)
+
+### Profile — Account Settings
+![Profile Settings](screenshots/AccountSettings.png)
+
+### Connected Banks
+![Connected Banks](screenshots/ConnectedBanks.png)
+
+### Plaid Integration
+![Plaid Integration](screenshots/PlaidIntegration.png)
+
+### Onboarding
+![Onboarding](screenshots/Onboarding.png)
+
+---
+
 ## Project Structure
 
 ```
