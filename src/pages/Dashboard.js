@@ -44,12 +44,23 @@ export default function Dashboard() {
   const [transactionLoading, setTransactionLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [filterTotal, setFilterTotal] = useState(null)
+  const [showSyncMessage, setShowSyncMessage] = useState(false)
   const [editingAccountId, setEditingAccountId] = useState(null)
   const [editingNickname, setEditingNickname] = useState('')
   const debounceTimer = useRef(null)
   const modalDragRef = useRef(false)
 
   useEffect(() => { if (initialAccounts) setLocalAccounts(initialAccounts) }, [initialAccounts])
+
+  // Check for ?connected=true after Plaid connection
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') === 'true') {
+      setShowSyncMessage(true)
+      setTimeout(() => setShowSyncMessage(false), 8000)
+      window.history.replaceState({}, '', '/dashboard')
+    }
+  }, [])
 
   function getDateFromRange(days) {
     if (!days) return ''
@@ -220,6 +231,17 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Sync message banner */}
+        {showSyncMessage && (
+          <div style={{ background: 'rgba(46,134,171,0.12)', borderBottom: '1px solid rgba(46,134,171,0.25)', padding: '11px 24px', fontSize: '13px', color: '#7ecae3', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span>✓</span>
+              <span>Bank connected successfully — transaction data may take up to 15 minutes to populate for the first time.</span>
+            </div>
+            <span onClick={() => setShowSyncMessage(false)} style={{ cursor: 'pointer', color: 'rgba(126,202,227,0.5)', fontSize: '16px', lineHeight: 1 }}>×</span>
+          </div>
+        )}
+
         {/* Main layout */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
@@ -297,12 +319,7 @@ export default function Dashboard() {
               {filterTotal !== null && (
                 <div style={{ marginTop: '10px', fontSize: '13px', color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Total:
-                  <span style={{
-                    color: filterTotal > 0 ? '#ff8a7a' : '#5bbf8a',
-                    fontFamily: "'DM Serif Display', serif",
-                    fontSize: '15px',
-                    fontWeight: '400'
-                  }}>
+                  <span style={{ color: filterTotal > 0 ? '#ff8a7a' : '#5bbf8a', fontFamily: "'DM Serif Display', serif", fontSize: '15px', fontWeight: '400' }}>
                     {filterTotal > 0 ? '-' : '+'}{fmt(Math.abs(filterTotal))}
                   </span>
                   <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>

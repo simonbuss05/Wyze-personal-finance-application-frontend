@@ -15,14 +15,16 @@ const btnStyle = {
   letterSpacing: '0.2px'
 }
 
-function ConnectBankButton({ redirectTo = '/profile?tab=banks' }) {
+function ConnectBankButton({ redirectTo = '/dashboard' }) {
   const [linkToken, setLinkToken] = useState(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     api.post('/api/plaid/create-link-token')
-      .then(res => { if (!cancelled) setLinkToken(res.data.link_token) })
+      .then(res => {
+        if (!cancelled) setLinkToken(res.data.link_token)
+      })
       .catch(err => console.error(err))
     return () => { cancelled = true }
   }, [])
@@ -37,8 +39,12 @@ function ConnectBankButton({ redirectTo = '/profile?tab=banks' }) {
     const handler = window.Plaid.create({
       token: linkToken,
       onSuccess: async (publicToken) => {
-        await api.post('/api/plaid/exchange-token', { publicToken })
-        window.location.href = redirectTo
+        try {
+          await api.post('/api/plaid/exchange-token', { publicToken })
+        } catch (err) {
+          console.error(err)
+        }
+        window.location.href = redirectTo + '?connected=true'
       },
       onExit: () => {}
     })
