@@ -207,9 +207,12 @@ export default function Profile() {
                     <button onClick={handlePasswordChange} style={primaryBtn}>Change Password</button>
                   </div>
 
+                  {/* Renamed from Danger Zone */}
                   <div style={{ ...sectionStyle, border: '1px solid rgba(229,57,53,0.15)', background: 'rgba(229,57,53,0.04)' }}>
-                    <h2 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: '500', color: '#ff6b6b' }}>Danger Zone</h2>
-                    <p style={{ margin: '0 0 18px 0', fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: '300', lineHeight: '1.6' }}>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <h2 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: '500', color: '#ff6b6b' }}>Delete Account</h2>
+                    <p style={{ margin: '0 0 18px 0', fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: '300', lineHeight: '1.6' }}>
+                      Permanently delete your account and all associated data. This action cannot be undone.
+                    </p>
                     <button onClick={() => setShowDeleteModal(true)} style={{ ...ghostBtn, border: '1px solid rgba(229,57,53,0.3)', color: '#ff6b6b' }}>Delete Account</button>
                   </div>
                 </>
