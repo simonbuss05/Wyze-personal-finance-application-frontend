@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://wyze-personal-finance-application-backend-production.up.railway.app"
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8080"
 });
 
 api.interceptors.request.use((config) => {
@@ -15,7 +15,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.clear()
       window.location.href = '/login'
     }
